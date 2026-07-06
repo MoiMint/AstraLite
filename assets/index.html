@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hướng Dẫn Sử Dụng Astra</title>
+    <style>
+        /* --- RESET & BASIC --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        body {
+            background-color: #2F3273; /* Viền ngoài màu xanh của Astra */
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* --- CONTAINER CHÍNH (CÁCH RÌA 50PX) --- */
+        #app-container {
+            width: calc(100vw - 100px); /* Trừ đi 50px mỗi bên */
+            height: calc(100vh - 100px);
+            background-color: #FDF8E2; /* Nền kem */
+            border-radius: 25px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.5);
+            display: flex;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* --- ASTRA MASCOT GÓC DƯỚI PHẢI --- */
+        .astra-mascot {
+            position: absolute;
+            bottom: -10px;
+            right: 20px;
+            width: 16vw; /* Cỡ 1/6 viewport */
+            height: 16vw;
+            background-color: #e2e8f0;
+            border: 4px dashed #9FB2D4;
+            border-radius: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            color: #2F3273;
+            text-align: center;
+            padding: 10px;
+            z-index: 100;
+            animation: float 3s ease-in-out infinite;
+            cursor: pointer;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .astra-mascot:hover { transform: scale(1.1) rotate(-5deg); border-color: #2F3273; background-color: #fff; }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+            100% { transform: translateY(0px); }
+        }
+
+        /* --- SIDEBAR MENU --- */
+        .sidebar {
+            width: 320px;
+            background-color: #9FB2D4; /* Xanh nhạt */
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            border-top-left-radius: 25px;
+            border-bottom-left-radius: 25px;
+            z-index: 10;
+        }
+
+        .logo-text { font-size: 28px; font-weight: 900; color: #2F3273; text-align: center; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 2px;}
+
+        .menu-btn {
+            background-color: transparent;
+            border: none;
+            padding: 15px 20px;
+            text-align: left;
+            font-size: 16px;
+            font-weight: bold;
+            color: #2F3273;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .menu-btn:hover { background-color: #FDF8E2; transform: translateX(10px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .menu-btn.active { background-color: #2F3273; color: white; transform: translateX(10px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+
+        /* --- CONTENT AREA --- */
+        .content-area {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .section { display: none; animation: fadeIn 0.5s ease; padding-right: 150px; /* Chừa chỗ cho con Astra đỡ che chữ */ }
+        .section.active { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        h1 { color: #2F3273; font-size: 32px; margin-bottom: 20px; border-bottom: 3px solid #9FB2D4; padding-bottom: 10px; display: inline-block;}
+        h2 { color: #2F3273; font-size: 22px; margin: 20px 0 10px 0; }
+        p, li { color: #444; font-size: 16px; line-height: 1.6; margin-bottom: 10px; }
+        ul { margin-left: 20px; margin-bottom: 20px; }
+
+        .code-tag { background: #2F3273; color: white; padding: 3px 8px; border-radius: 6px; font-family: monospace; font-weight: bold;}
+        .highlight-box { background: white; border: 2px solid #9FB2D4; border-radius: 15px; padding: 20px; margin-bottom: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); transition: transform 0.3s;}
+        .highlight-box:hover { transform: translateY(-5px); border-color: #2F3273;}
+
+        /* --- ẢNH PLACEHOLDER TRONG BÀI --- */
+        .img-placeholder {
+            width: 100%; max-width: 400px; height: 200px;
+            background: #e2e8f0; border: 2px dashed #9FB2D4; border-radius: 15px;
+            display: flex; justify-content: center; align-items: center;
+            color: #888; font-style: italic; margin: 15px 0;
+            transition: transform 0.3s;
+        }
+        .img-placeholder:hover { transform: scale(1.02); }
+
+        /* Tùy chỉnh thanh cuộn */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #9FB2D4; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #2F3273; }
+
+        /* ÉP ẢNH KHÔNG ĐƯỢC TRÀN VIỀN */
+        img {
+            max-width: 100%;
+            max-height: 350px;
+            object-fit: contain;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        /* TẨY SẠCH VIỀN RÁC VÀ NỀN KHI ĐÃ CÓ ẢNH */
+        .img-placeholder:has(img) {
+            border: none !important;
+            background: transparent !important;
+            height: auto !important;
+        }
+
+        .astra-mascot {
+            border: none !important;
+            background: transparent !important;
+            color: transparent !important; /* Giấu luôn mấy chữ thừa */
+        }
+
+        .astra-mascot:hover {
+            background: transparent !important;
+            border: none !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        
+        <!-- SIDEBAR -->
+        <div class="sidebar">
+            <div class="logo-text">✨ ASTRA ✨</div>
+            <button class="menu-btn active" onclick="showSection('sec-intro', this)">👋 Giới thiệu</button>
+            <button class="menu-btn" onclick="showSection('sec-chat', this)">💬 Cách trò chuyện</button>
+            <button class="menu-btn" onclick="showSection('sec-commands', this)">⚡ Các lệnh hệ thống</button>
+            <button class="menu-btn" onclick="showSection('sec-calendar', this)">🗓️ Quản lý Lịch & Hẹn giờ</button>
+            <button class="menu-btn" onclick="showSection('sec-notes', this)">📌 Ghi chú (Sticky Notes)</button>
+            <button class="menu-btn" onclick="showSection('sec-tray', this)">⚙️ Khay hệ thống (Tray Icon)</button>
+        </div>
+
+        <!-- CONTENT -->
+        <div class="content-area">
+            
+            <!-- Giới thiệu -->
+            <div id="sec-intro" class="section active">
+                <h1>Chào mừng đến với Astra!</h1>
+                <p>Astra không chỉ là một phần mềm, mà là một cô trợ lý ảo nhút nhát, tinh tế và luôn sẵn sàng đồng hành cùng cậu trên màn hình Desktop.</p>
+                <div class="highlight-box">
+                    <h2>Mục đích của trang này</h2>
+                    <p>Trang tài liệu này sẽ hướng dẫn cậu cách tương tác, ra lệnh và sử dụng toàn bộ các tính năng xịn xò nhất của Astra. Hãy bấm vào các mục bên trái để bắt đầu khám phá nhé!</p>
+                </div>
+                <div class="img-placeholder" style="max-width: 600px; height: 300px;">
+                    <img src = "https://i.postimg.cc/k5VBZqTx/image.png">
+                </div>
+            </div>
+
+            <!-- Chat -->
+            <div id="sec-chat" class="section">
+                <h1>Giao tiếp với Astra</h1>
+                <div class="highlight-box">
+                    <h2>1. Cách mở khung chat nhỏ</h2>
+                    <p>Rất đơn giản, cậu chỉ cần <b>Click đúp chuột trái (Double Click)</b> thẳng vào người Astra đang đứng trên màn hình. Một khung chat dễ thương sẽ hiện ra ngay dưới chân ẻm.</p>
+                    <div class="img-placeholder">
+                        <img src = "https://i.postimg.cc/K8fPFG75/1.png">
+                    </div>
+                </div>
+                <div class="highlight-box">
+                    <h2>2. Mở hộp thoại lớn (Big Chat)</h2>
+                    <p>Nếu cậu muốn xem lại toàn bộ lịch sử trò chuyện hoặc cần một không gian chat rộng rãi hơn, hãy gõ lệnh <span class="code-tag">big chat</span>, <span class="code-tag">mở cửa sổ to</span>, hoặc <span class="code-tag">mở hộp thoại</span> vào khung chat nhỏ rồi nhấn Enter.</p>
+                    <div class="img-placeholder">
+                        <img src = "https://i.postimg.cc/9QCdvR9b/2.png">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lệnh hệ thống -->
+            <div id="sec-commands" class="section">
+                <h1>Các câu lệnh "Phép thuật"</h1>
+                <p>Astra có thể giúp cậu điều khiển máy tính ngay từ khung chat. Hãy gõ các từ khóa sau:</p>
+                
+                <div class="highlight-box">
+                    <h2>🌐 Mở Ứng Dụng</h2>
+                    <ul>
+                        <li><b>Mở trình duyệt:</b> Gõ <span class="code-tag">mở edge</span> hoặc <span class="code-tag">open edge</span></li>
+                        <li><b>Mở Word:</b> Gõ <span class="code-tag">mở word</span> hoặc <span class="code-tag">open word</span></li>
+                        <li><b>Mở Notepad:</b> Gõ <span class="code-tag">mở notepad</span> hoặc <span class="code-tag">open notepad</span></li>
+                    </ul>
+                </div>
+
+                <div class="highlight-box">
+                    <h2>🧠 Dạy Astra nhớ thông tin</h2>
+                    <ul>
+                        <li><b>Dạy tên:</b> Gõ <span class="code-tag">Tên tớ là [Tên cậu]</span>. Astra sẽ ghi nhớ và gọi đúng tên cậu.</li>
+                        <li><b>Sở thích:</b> Gõ <span class="code-tag">Tớ thích [Món ăn/Màu sắc...]</span>. Astra sẽ lưu vào bộ não dài hạn.</li>
+                    </ul>
+                </div>
+
+                <div class="highlight-box">
+                    <h2>👋 Các lệnh điều khiển App</h2>
+                    <ul>
+                        <li><b>Tạm biệt/Tắt app:</b> Gõ <span class="code-tag">quit</span>, <span class="code-tag">bye</span>, <span class="code-tag">tắt</span>.</li>
+                        <li><b>Khởi động lại Astra:</b> Gõ <span class="code-tag">restart</span> hoặc <span class="code-tag">khởi động lại</span>.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Calendar & Bão -->
+            <div id="sec-calendar" class="section">
+                <h1>Lịch & Nhắc việc (Reminder Storm)</h1>
+                
+                <div class="highlight-box">
+                    <h2>1. Mở Lịch (Calendar)</h2>
+                    <p>Gõ lệnh <span class="code-tag">calendar</span> hoặc <span class="code-tag">mở lịch</span> vào khung chat. Tại Dashboard, cậu có thể:</p>
+                    <ul>
+                        <li>Chuyển đổi qua lại giữa các ngày, các tháng.</li>
+                        <li><b>Click chuột vào 1 ngày bất kỳ</b> để xem lịch trình của ngày hôm đó hoặc thêm công việc mới.</li>
+                    </ul>
+                    <div class="img-placeholder">
+                        <img src = "https://i.postimg.cc/XYLf3jKK/3.png">
+                    </div>
+                </div>
+
+                <div class="highlight-box">
+                    <h2>2. Ma thuật hẹn giờ & Bão Thông Báo</h2>
+                    <p>Khi cậu click vào 1 ngày để ghi chú công việc, Astra hỗ trợ cú pháp gõ siêu tốc để đặt báo thức:</p>
+                    <ul>
+                        <li><b>Hẹn giờ tuyệt đối:</b> Gõ <span class="code-tag">14:30 Họp nhóm</span> -> Astra tự hiểu là <span class="code-tag">[14:30] Họp nhóm</span>.</li>
+                        <li><b>Hẹn giờ tương đối:</b> Đang lười? Gõ <span class="code-tag">+10m Tập thể dục</span> (10 phút nữa) hoặc <span class="code-tag">+2h Uống nước</span> (2 tiếng nữa). Khi lưu, Astra tự tính giờ và điền vào cho cậu!</li>
+                    </ul>
+                    <p style="color: #D32F2F; font-weight: bold;">⚠️ KHI ĐẾN GIỜ: Astra sẽ kích hoạt "Reminder Storm" - Nổi bão popup ngập màn hình ép cậu phải làm việc!</p>
+                    <div class="img-placeholder">
+                        <img src = "https://i.postimg.cc/Mp57x60R/4.png">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sticky Notes -->
+            <div id="sec-notes" class="section">
+                <h1>Ghi chú dán màn hình (Sticky Notes)</h1>
+                <div class="highlight-box">
+                    <h2>Cách sử dụng</h2>
+                    <ol>
+                        <li>Mở <b>Dashboard</b> (từ Menu chuột phải hoặc gõ lệnh 'mở lịch').</li>
+                        <li>Chuyển sang mục <b>Notes</b>. Bấm nút <b>Thêm</b> để tạo 1 mảnh giấy ghi chú mới.</li>
+                        <li>Cậu có thể nhập nội dung cần nhớ vào đó.</li>
+                        <li><b>Kéo thả (Drag):</b> Cầm mảnh giấy đó kéo tuột ra ngoài màn hình Desktop để dán nó ở bất cứ đâu cậu muốn.</li>
+                        <li><b>Thu hồi:</b> Khi không cần nữa, chỉ việc nắm tờ giấy ở Desktop kéo thả ngược lại vào cửa sổ Dashboard để cất đi.</li>
+                    </ol>
+                    <div class="img-placeholder" style="max-width: 500px;">
+                        <img src = "https://i.postimg.cc/t4k3yqdN/5.png">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tray Icon -->
+            <div id="sec-tray" class="section">
+                <h1>Khay hệ thống (Tray Icon)</h1>
+                <div class="highlight-box">
+                    <p>Astra chạy ngầm rất ngoan ngoãn. Dưới góc phải màn hình của Windows (chỗ có ngày giờ), cậu sẽ thấy một icon nhỏ xíu hình mặt Astra.</p>
+                    <p><b>Hãy Click chuột phải vào icon đó để mở Menu nhanh:</b></p>
+                    <ul>
+                        <li><b>Mở Dashboard:</b> Truy cập nhanh vào Lịch và Ghi chú.</li>
+                        <li><b>Thoát:</b> Đóng hoàn toàn ứng dụng.</li>
+                    </ul>
+                    <div class="img-placeholder" style="height: 150px;">
+                        <img src = "https://i.postimg.cc/fTx72jVs/6.png">
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- MẶT CON ASTRA TO ĐÙNG GÓC PHẢI DƯỚI -->
+        <!-- M thay đổi đường dẫn src="" vào cái ảnh Astra .png trong suốt của m nhé -->
+        <div class="astra-mascot" title="Tớ là Astra đây!">
+            <div style="font-size: 14px;">
+                [THAY ẢNH]<br><br>
+                <span style="font-size: 10px; font-weight: normal;">
+                    <img src="https://i.postimg.cc/FHpymrbZ/astra.png"></span>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // JS Đổi tab mượt mà
+        function showSection(sectionId, btnElement) {
+            // Xóa class active ở tất cả các nút
+            let btns = document.querySelectorAll('.menu-btn');
+            btns.forEach(btn => btn.classList.remove('active'));
+            
+            // Ẩn tất cả nội dung
+            let sections = document.querySelectorAll('.section');
+            sections.forEach(sec => sec.classList.remove('active'));
+
+            // Hiện nội dung tương ứng và highlight nút
+            document.getElementById(sectionId).classList.add('active');
+            btnElement.classList.add('active');
+        }
+    </script>
+</body>
+</html>

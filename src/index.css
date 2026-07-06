@@ -1,0 +1,52 @@
+* {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+  min-width: 320px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+body {
+  height: 100%;
+  min-width: 320px;
+  min-height: 100svh;
+  margin: 0;
+  font-family:
+    "Trebuchet MS",
+    "Segoe UI",
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  font-size: 19px;
+  line-height: 1.45;
+  letter-spacing: 0;
+  color: #35338b;
+  background: #ffffff;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+}
+
+button,
+input,
+textarea {
+  letter-spacing: 0;
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 4px solid rgba(255, 202, 79, 0.82);
+  outline-offset: 3px;
+}
+
+#root {
+  height: 100%;
+  min-height: 100svh;
+}
