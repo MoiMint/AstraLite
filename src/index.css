@@ -15,8 +15,10 @@ body {
   min-height: 100svh;
   margin: 0;
   font-family:
-    "Trebuchet MS",
+    "Arial",
+    "Helvetica Neue",
     "Segoe UI",
+    "Noto Sans",
     system-ui,
     -apple-system,
     BlinkMacSystemFont,
