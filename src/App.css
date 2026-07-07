@@ -375,6 +375,7 @@ button:not(:disabled):active {
 
 .time-card,
 .nav-pill,
+.account-panel button,
 .task-input,
 .round-add,
 .note-tab,
@@ -631,6 +632,77 @@ button:not(:disabled):active {
   background-size: 220% 100%;
   border-radius: var(--round-lg) var(--round-lg) var(--round-md) var(--round-md);
   animation: ribbon-drift 9s ease-in-out infinite;
+}
+
+.account-panel {
+  position: absolute;
+  z-index: 5;
+  top: 10px;
+  right: clamp(16px, 1.6vw, 28px);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: min(760px, calc(100% - 32px));
+  min-height: 36px;
+  padding: 8px 10px 8px 16px;
+  border-radius: 999px;
+  background: rgba(255, 251, 234, 0.94);
+  color: var(--ink);
+  box-shadow: 0 10px 24px rgba(47, 44, 131, 0.14);
+}
+
+.account-panel div {
+  display: grid;
+  min-width: 0;
+}
+
+.account-panel span {
+  color: var(--soft-text);
+  font-size: 0.68rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.account-panel strong {
+  overflow: hidden;
+  max-width: 260px;
+  font-size: 0.9rem;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-panel p,
+.account-panel button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.account-panel p {
+  margin: 0;
+  color: var(--soft-text);
+  font-size: 0.82rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.account-panel svg {
+  width: 16px;
+  height: 16px;
+}
+
+.account-panel button {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--cream);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 950;
 }
 
 .view-frame {
