@@ -19,8 +19,8 @@ AstraLite is a Vite + React desktop web app with an Astra-themed workspace, cale
 3. Fill `.env.local` with your Supabase project values:
 
    ```bash
-   NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_your-publishable-key
+   VITE_SUPABASE_URL=https://your-project.supabase.co
+   VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
    ```
 
 4. Start the app:
@@ -33,18 +33,14 @@ AstraLite is a Vite + React desktop web app with an Astra-themed workspace, cale
 
 1. Create a project in Supabase.
 2. Open **Project Settings → API** and copy:
-   - **Project URL** into `NEXT_PUBLIC_SUPABASE_URL`.
-   - **Publishable key** (`sb_publishable_...`) into `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
+   - **Project URL** into `VITE_SUPABASE_URL`.
+   - **anon public** key into `VITE_SUPABASE_ANON_KEY`.
 3. Open **Authentication → Providers → Email**.
 4. Enable Email provider.
 5. For easiest first test, turn off email confirmation. If email confirmation stays on, sign-up will show a message asking the user to confirm their email before logging in.
 6. Add the same two variables in Vercel under **Project Settings → Environment Variables** for Production, Preview, and Development.
 
-> Important: Vite reads these variables at build time. After adding or editing variables on Vercel, trigger a new deployment. If the website still shows the old `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` warning, the deployed build is old and has not been rebuilt from the latest commit.
-
 ## Connect app data to Supabase tables
-
-The app also accepts the older `VITE_SUPABASE_URL` plus `VITE_SUPABASE_PUBLISHABLE_KEY`/`VITE_SUPABASE_ANON_KEY` names, but Vercel values copied from the current Supabase dashboard can be used directly as `NEXT_PUBLIC_*`.
 
 The login session stores a Supabase access token in `localStorage` under `astralite.supabase.session`. Use that token when reading or writing user-owned data.
 
@@ -89,9 +85,9 @@ Example browser request after login:
 const stored = localStorage.getItem('astralite.supabase.session')
 const session = stored ? JSON.parse(stored) : null
 
-const response = await fetch(`${import.meta.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/notes`, {
+const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/notes`, {
   headers: {
-    apikey: import.meta.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+    apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
     Authorization: `Bearer ${session.access_token}`,
   },
 })
@@ -105,7 +101,7 @@ Use the same pattern for `tasks`, `calendar_events`, and user profile tables: ev
 
 This repository is a Vite app, not a Next.js app. `vercel.json` pins the framework to Vite, uses `npm run build`, and deploys `dist`.
 
-If Vercel still says “No Next.js version detected”, check that the Vercel project **Root Directory** points to the folder containing this `package.json` and `vercel.json`. If Supabase variables were added after a deploy, redeploy the project because Vite cannot read new environment variables without rebuilding.
+If Vercel still says “No Next.js version detected”, check that the Vercel project **Root Directory** points to the folder containing this `package.json` and `vercel.json`.
 
 ## Scripts
 
@@ -113,55 +109,3 @@ If Vercel still says “No Next.js version detected”, check that the Vercel pr
 - `npm run build` — type-check and build production files.
 - `npm run lint` — run Oxlint.
 - `npm run preview` — preview the production build locally.
-
-## Security notes: XSS and CSRF
-
-- The app does not render user input with `dangerouslySetInnerHTML`; React escapes text content by default.
-- `vercel.json` sends a Content Security Policy that blocks third-party scripts, framing, plugins, and unnecessary browser permissions.
-- Supabase Auth calls use `Authorization: Bearer ...` headers instead of browser cookies, so classic cookie-based CSRF is not used for these auth requests.
-- Keep Row Level Security enabled on every Supabase data table and restrict every row by `auth.uid() = user_id`.
-- Never put `sb_secret_...` keys in frontend code or Vercel public variables. Use only the `sb_publishable_...` key in this app.
-
-## Set up SMTP and confirm sign-up in Supabase
-
-1. In Supabase, open **Project Settings → Authentication → SMTP Settings**.
-2. Enable **Custom SMTP**.
-3. Add your SMTP provider values:
-   - Host: for example `smtp.resend.com`, `smtp.sendgrid.net`, or your mail provider host.
-   - Port: usually `587` with STARTTLS.
-   - Username and password: from your SMTP provider.
-   - Sender email: use a verified domain email, for example `noreply@yourdomain.com`.
-   - Sender name: `AstraLite`.
-4. Open **Authentication → URL Configuration**.
-5. Set **Site URL** to your deployed Vercel URL, for example `https://your-app.vercel.app`.
-6. Add both local and production redirect URLs:
-   - `http://localhost:5173`
-   - `https://your-app.vercel.app`
-7. Open **Authentication → Providers → Email**.
-8. Enable **Confirm email** if you want verified accounts.
-9. Customize the confirm sign-up email template. Suggested subject:
-
-   ```text
-   Xác nhận tài khoản AstraLite của bạn
-   ```
-
-   Suggested body:
-
-   ```html
-   <h2>Chào mừng đến với AstraLite</h2>
-   <p>Bấm nút bên dưới để xác nhận tài khoản và mở không gian làm việc của bạn.</p>
-   <p><a href="{{ .ConfirmationURL }}">Xác nhận tài khoản</a></p>
-   <p>Nếu bạn không tạo tài khoản AstraLite, hãy bỏ qua email này.</p>
-   ```
-
-When email confirmation is enabled, Supabase cannot fully log a user in until they click the confirmation link. This app now sends Supabase back to the current site after confirmation and automatically stores the returned session, so the user is logged in after opening the confirmation link. If confirmation is disabled, sign-up logs in immediately.
-
-## Persist AstraLite data in Supabase
-
-Run `supabase/schema.sql` in the Supabase SQL Editor to create the tables used by the app:
-
-- `tasks`
-- `notes`
-- `calendar_events`
-
-The schema enables RLS and adds policies so each authenticated user can only manage rows where `user_id = auth.uid()`. The app validates the current Supabase session on load, shows the active account inside the workspace, and syncs workspace data with these tables after login.
