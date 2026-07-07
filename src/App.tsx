@@ -74,22 +74,10 @@ type AuthSession = {
 
 type AuthMode = 'signin' | 'signup'
 
-type AuthResult =
-  | { session: AuthSession; notice?: string }
-  | { session: null; notice: string }
-
-const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL
-  ?? import.meta.env.NEXT_PUBLIC_SUPABASE_URL) as string | undefined
-const SUPABASE_PUBLISHABLE_KEY = (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
-  ?? import.meta.env.VITE_SUPABASE_ANON_KEY
-  ?? import.meta.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-  ?? import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) as string | undefined
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
 const ASTRA_SESSION_KEY = 'astralite.supabase.session'
-const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY)
-const missingSupabaseConfig = [
-  SUPABASE_URL ? null : 'NEXT_PUBLIC_SUPABASE_URL',
-  SUPABASE_PUBLISHABLE_KEY ? null : 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY',
-].filter(Boolean).join(' và ')
+const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY)
 
 const getStoredSession = (): AuthSession | null => {
   try {
@@ -113,17 +101,17 @@ const requestSupabaseAuth = async (
   mode: AuthMode,
   email: string,
   password: string,
-): Promise<AuthResult> => {
-  if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-    throw new Error('Thiếu Supabase URL hoặc Publishable key trên Vercel.')
+): Promise<AuthSession> => {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    throw new Error('Thiếu VITE_SUPABASE_URL hoặc VITE_SUPABASE_ANON_KEY trên Vercel.')
   }
 
   const endpoint = mode === 'signin' ? 'token?grant_type=password' : 'signup'
   const response = await fetch(`${SUPABASE_URL}/auth/v1/${endpoint}`, {
     method: 'POST',
     headers: {
-      apikey: SUPABASE_PUBLISHABLE_KEY,
-      Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ email, password }),
@@ -138,27 +126,17 @@ const requestSupabaseAuth = async (
   const user = data.user ?? data
   const accessToken = data.access_token ?? data.session?.access_token
 
-  if (!user?.email) {
-    throw new Error('Supabase không trả về thông tin người dùng hợp lệ.')
-  }
-
-  if (!accessToken) {
-    return {
-      session: null,
-      notice: 'Tài khoản đã được tạo. Hãy mở email xác nhận từ Supabase rồi quay lại đăng nhập.',
-    }
+  if (!user?.email || !accessToken) {
+    throw new Error('Hãy kiểm tra email xác nhận từ Supabase rồi đăng nhập lại.')
   }
 
   return {
-    session: {
-      access_token: accessToken,
-      refresh_token: data.refresh_token ?? data.session?.refresh_token,
-      user: {
-        id: user.id,
-        email: user.email,
-      },
+    access_token: accessToken,
+    refresh_token: data.refresh_token ?? data.session?.refresh_token,
+    user: {
+      id: user.id,
+      email: user.email,
     },
-    notice: mode === 'signup' ? 'Tài khoản đã sẵn sàng. AstraLite đang mở phòng của bạn.' : undefined,
   }
 }
 type GuidanceView = ViewName
@@ -702,14 +680,8 @@ function AuthWelcome({ onAuthSuccess }: { onAuthSuccess: (session: AuthSession) 
     setIsSubmitting(true)
 
     try {
-      const result = await requestSupabaseAuth(mode, email.trim(), password)
-
-      if (result.session) {
-        onAuthSuccess(result.session)
-        return
-      }
-
-      setMessage(result.notice)
+      const session = await requestSupabaseAuth(mode, email.trim(), password)
+      onAuthSuccess(session)
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Không thể kết nối Supabase.')
     } finally {
@@ -735,16 +707,12 @@ function AuthWelcome({ onAuthSuccess }: { onAuthSuccess: (session: AuthSession) 
             <img src={astraAssets.happy} alt="Astra welcoming you" />
             <div>
               <strong>Ready for Vercel + Supabase</strong>
-              <span>Dùng NEXT_PUBLIC_SUPABASE_URL và NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, hoặc các biến VITE tương đương.</span>
+              <span>Dùng biến môi trường VITE_SUPABASE_URL và VITE_SUPABASE_ANON_KEY.</span>
             </div>
           </div>
         </div>
 
         <form className="auth-panel" onSubmit={handleSubmit}>
-          <div className="auth-desktop-note">
-            <strong>Desktop workspace</strong>
-            <span>Thiết kế ưu tiên màn hình máy tính: bảng lớn, tab rõ, chữ Việt dễ đọc.</span>
-          </div>
           <div className="auth-tabs" role="tablist" aria-label="Authentication mode">
             <button type="button" className={mode === 'signin' ? 'active' : ''} onClick={() => setMode('signin')}>
               <LogIn aria-hidden="true" /> Đăng nhập
@@ -767,7 +735,7 @@ function AuthWelcome({ onAuthSuccess }: { onAuthSuccess: (session: AuthSession) 
           </label>
 
           {!isSupabaseConfigured ? (
-            <p className="auth-message warning">Chưa cấu hình Supabase: thiếu {missingSupabaseConfig}. Sau khi thêm biến trên Vercel, hãy redeploy để Vite nhúng biến mới vào web.</p>
+            <p className="auth-message warning">Chưa cấu hình Supabase. Thêm VITE_SUPABASE_URL và VITE_SUPABASE_ANON_KEY trong Vercel Environment Variables.</p>
           ) : null}
           {message ? <p className="auth-message">{message}</p> : null}
 
