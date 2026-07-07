@@ -589,6 +589,11 @@ function App() {
         </aside>
 
         <main className={`workspace workspace-${activeView}`}>
+          <AccountPanel
+            email={authSession.user.email}
+            syncStatus={syncStatus}
+            onSignOut={handleSignOut}
+          />
           <div className="workspace-ribbon">
             {activeView === 'calendar' ? (
               <CalendarRibbon
