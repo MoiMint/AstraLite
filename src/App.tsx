@@ -350,6 +350,9 @@ function App() {
     null,
   )
   const [authSession, setAuthSession] = useState<AuthSession | null>(() => getStoredSession())
+  const syncStatus = isSupabaseConfigured
+    ? 'Supabase session ready'
+    : 'Supabase variables missing'
 
   const handleAuthSuccess = (session: AuthSession) => {
     storeSession(session)
@@ -750,6 +753,33 @@ function AuthWelcome({ onAuthSuccess }: { onAuthSuccess: (session: AuthSession) 
         </form>
       </motion.section>
     </main>
+  )
+}
+
+function AccountPanel({
+  email,
+  syncStatus,
+  onSignOut,
+}: {
+  email: string
+  syncStatus: string
+  onSignOut: () => void
+}) {
+  return (
+    <section className="account-panel" aria-label="Account and sync status">
+      <div>
+        <span>Signed in as</span>
+        <strong>{email}</strong>
+      </div>
+      <p>
+        <Save aria-hidden="true" />
+        {syncStatus}
+      </p>
+      <button type="button" onClick={onSignOut}>
+        <LogOut aria-hidden="true" />
+        Sign out
+      </button>
+    </section>
   )
 }
 
