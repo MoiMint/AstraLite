@@ -9,17 +9,22 @@ import {
   Clock,
   Command,
   HelpCircle,
+  LogIn,
+  LogOut,
+  Mail,
   LayoutDashboard,
   ListTodo,
   Play,
   Plus,
   RotateCcw,
   Save,
+  ShieldCheck,
   Search,
   Send,
   Sparkles,
   Square,
   Trash2,
+  UserPlus,
   X,
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -55,6 +60,103 @@ const astraAssets = {
 }
 
 type ViewName = 'time' | 'focus' | 'calendar' | 'notebook' | 'pomodoro' | 'smartra'
+
+type AuthUser = {
+  id: string
+  email: string
+}
+
+type AuthSession = {
+  access_token: string
+  refresh_token?: string
+  user: AuthUser
+}
+
+type AuthMode = 'signin' | 'signup'
+
+type AuthResult =
+  | { session: AuthSession; notice?: string }
+  | { session: null; notice: string }
+
+const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL
+  ?? import.meta.env.NEXT_PUBLIC_SUPABASE_URL) as string | undefined
+const SUPABASE_PUBLISHABLE_KEY = (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+  ?? import.meta.env.VITE_SUPABASE_ANON_KEY
+  ?? import.meta.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+  ?? import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) as string | undefined
+const ASTRA_SESSION_KEY = 'astralite.supabase.session'
+const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY)
+
+const getStoredSession = (): AuthSession | null => {
+  try {
+    const stored = window.localStorage.getItem(ASTRA_SESSION_KEY)
+    return stored ? (JSON.parse(stored) as AuthSession) : null
+  } catch {
+    return null
+  }
+}
+
+const storeSession = (session: AuthSession | null) => {
+  if (!session) {
+    window.localStorage.removeItem(ASTRA_SESSION_KEY)
+    return
+  }
+
+  window.localStorage.setItem(ASTRA_SESSION_KEY, JSON.stringify(session))
+}
+
+const requestSupabaseAuth = async (
+  mode: AuthMode,
+  email: string,
+  password: string,
+): Promise<AuthResult> => {
+  if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+    throw new Error('Thiếu Supabase URL hoặc Publishable key trên Vercel.')
+  }
+
+  const endpoint = mode === 'signin' ? 'token?grant_type=password' : 'signup'
+  const response = await fetch(`${SUPABASE_URL}/auth/v1/${endpoint}`, {
+    method: 'POST',
+    headers: {
+      apikey: SUPABASE_PUBLISHABLE_KEY,
+      Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email, password }),
+  })
+
+  const data = await response.json().catch(() => ({}))
+
+  if (!response.ok) {
+    throw new Error(data.msg || data.message || 'Supabase không thể xác thực tài khoản này.')
+  }
+
+  const user = data.user ?? data
+  const accessToken = data.access_token ?? data.session?.access_token
+
+  if (!user?.email) {
+    throw new Error('Supabase không trả về thông tin người dùng hợp lệ.')
+  }
+
+  if (!accessToken) {
+    return {
+      session: null,
+      notice: 'Tài khoản đã được tạo. Hãy mở email xác nhận từ Supabase rồi quay lại đăng nhập.',
+    }
+  }
+
+  return {
+    session: {
+      access_token: accessToken,
+      refresh_token: data.refresh_token ?? data.session?.refresh_token,
+      user: {
+        id: user.id,
+        email: user.email,
+      },
+    },
+    notice: mode === 'signup' ? 'Tài khoản đã sẵn sàng. AstraLite đang mở phòng của bạn.' : undefined,
+  }
+}
 type GuidanceView = ViewName
 
 type ViewTransitionDocument = Document & {
@@ -265,6 +367,17 @@ function App() {
   const [contextWheel, setContextWheel] = useState<{ x: number; y: number } | null>(
     null,
   )
+  const [authSession, setAuthSession] = useState<AuthSession | null>(() => getStoredSession())
+
+  const handleAuthSuccess = (session: AuthSession) => {
+    storeSession(session)
+    setAuthSession(session)
+  }
+
+  const handleSignOut = () => {
+    storeSession(null)
+    setAuthSession(null)
+  }
 
   const visibleNavItems = navItems
 
@@ -448,6 +561,10 @@ function App() {
     )
   }
 
+  if (!authSession) {
+    return <AuthWelcome onAuthSuccess={handleAuthSuccess} />
+  }
+
   return (
     <div
       className="astra-app"
@@ -482,6 +599,11 @@ function App() {
               )
             })}
           </nav>
+
+          <button type="button" className="sign-out-button" onClick={handleSignOut}>
+            <LogOut aria-hidden="true" />
+            <span>sign out</span>
+          </button>
         </aside>
 
         <main className={`workspace workspace-${activeView}`}>
@@ -559,6 +681,98 @@ function App() {
         }}
       />
     </div>
+  )
+}
+
+
+function AuthWelcome({ onAuthSuccess }: { onAuthSuccess: (session: AuthSession) => void }) {
+  const [mode, setMode] = useState<AuthMode>('signin')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [message, setMessage] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setMessage('')
+    setIsSubmitting(true)
+
+    try {
+      const result = await requestSupabaseAuth(mode, email.trim(), password)
+
+      if (result.session) {
+        onAuthSuccess(result.session)
+        return
+      }
+
+      setMessage(result.notice)
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Không thể kết nối Supabase.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <main className="auth-welcome" aria-label="AstraLite login">
+      <motion.section
+        className="auth-card"
+        initial={{ opacity: 0, y: 20, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.36, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <div className="auth-hero">
+          <span className="auth-kicker"><ShieldCheck aria-hidden="true" /> AstraLite cloud room</span>
+          <h1>Chào mừng bạn quay lại với Astra.</h1>
+          <p>
+            Đăng nhập hoặc tạo tài khoản mới để mở lịch, notebook, Pomodoro và Smartra trong cùng một không gian mềm mại.
+          </p>
+          <div className="auth-preview">
+            <img src={astraAssets.happy} alt="Astra welcoming you" />
+            <div>
+              <strong>Ready for Vercel + Supabase</strong>
+              <span>Dùng NEXT_PUBLIC_SUPABASE_URL và NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, hoặc các biến VITE tương đương.</span>
+            </div>
+          </div>
+        </div>
+
+        <form className="auth-panel" onSubmit={handleSubmit}>
+          <div className="auth-desktop-note">
+            <strong>Desktop workspace</strong>
+            <span>Thiết kế ưu tiên màn hình máy tính: bảng lớn, tab rõ, chữ Việt dễ đọc.</span>
+          </div>
+          <div className="auth-tabs" role="tablist" aria-label="Authentication mode">
+            <button type="button" className={mode === 'signin' ? 'active' : ''} onClick={() => setMode('signin')}>
+              <LogIn aria-hidden="true" /> Đăng nhập
+            </button>
+            <button type="button" className={mode === 'signup' ? 'active' : ''} onClick={() => setMode('signup')}>
+              <UserPlus aria-hidden="true" /> Tạo tài khoản
+            </button>
+          </div>
+
+          <label className="auth-field">
+            <span>Email</span>
+            <Mail aria-hidden="true" />
+            <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" required />
+          </label>
+
+          <label className="auth-field">
+            <span>Mật khẩu</span>
+            <ShieldCheck aria-hidden="true" />
+            <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Ít nhất 6 ký tự" minLength={6} required />
+          </label>
+
+          {!isSupabaseConfigured ? (
+            <p className="auth-message warning">Chưa cấu hình Supabase. Thêm NEXT_PUBLIC_SUPABASE_URL và NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY trong Vercel Environment Variables.</p>
+          ) : null}
+          {message ? <p className="auth-message">{message}</p> : null}
+
+          <button type="submit" className="auth-submit" disabled={isSubmitting || !isSupabaseConfigured}>
+            {isSubmitting ? 'Đang kết nối...' : mode === 'signin' ? 'Mở AstraLite' : 'Tạo tài khoản Astra'}
+          </button>
+        </form>
+      </motion.section>
+    </main>
   )
 }
 
